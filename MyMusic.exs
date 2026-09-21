@@ -212,6 +212,8 @@ defmodule MyMusic do
 
     Util.mostrar_mensaje("\n===== ACTUALIZAR CANCIÓN =====")
 
+    mostrar_canciones(canciones)
+
     id = Util.ingresar("Ingrese el ID de la canción: ", :entero)
 
     cancion = Enum.find(canciones, fn cancion ->
@@ -441,7 +443,7 @@ defmodule MyMusic do
     end
   end
 
-#numeración de canciones quese pueden elegir
+#numeración de canciones que se pueden elegir
   defp seleccionar_cancion(canciones, mensaje_prompt) do
     if Enum.empty?(canciones) do
       {:error, "No hay canciones disponibles."}
@@ -520,6 +522,216 @@ defmodule MyMusic do
 
     Util.mostrar_mensaje(mensaje)
   end
+
+
+
+
+
+
+# Menu de Playlists
+
+  def menu_playlists(playlists) do
+
+    Util.mostrar_mensaje("""
+    =====================================
+    ||           PLAYLISTS              ||
+    =====================================
+
+    1. Crear playlist
+    2. Ver playlists
+    3. Actualizar playlist
+    4. Eliminar playlist
+    5. Volver
+
+    """)
+
+    opcion = Util.ingresar("Seleccione una opción: ", :entero)
+
+    case opcion do
+
+      1 ->
+
+        nuevas_playlists = crear_playlist(playlists)
+
+        menu_playlists(nuevas_playlists)
+
+
+      2 ->
+
+        mostrar_playlists(playlists)
+
+        menu_playlists(playlists)
+
+
+      3 ->
+
+        nuevas_playlists = actualizar_playlist(playlists)
+
+        menu_playlists(nuevas_playlists)
+
+
+      4 ->
+
+        nuevas_playlists = eliminar_playlist(playlists)
+
+        menu_playlists(nuevas_playlists)
+
+
+      5 ->
+
+        Util.mostrar_mensaje("Volviendo al menú principal...")
+
+
+      _ ->
+
+        Util.mostrar_mensaje("Opción inválida.")
+
+        menu_playlists(playlists)
+
+    end
+  end
+
+
+
+  # Create - Crear Playlist
+
+  def crear_playlist(playlists) do
+
+    Util.mostrar_mensaje("\n===== CREAR PLAYLIST =====")
+
+    name = Util.ingresar("Ingrese el nombre de la playlist: ", :texto)
+
+    nuevo_id =
+      case playlists do
+        [] -> 1
+        _ -> Enum.max_by(playlists, fn playlist -> playlist.id end).id + 1
+      end
+
+    nueva_playlist = %{
+      id: nuevo_id,
+      name: name,
+      canciones: []
+    }
+
+    nuevas_playlists = playlists ++ [nueva_playlist]
+
+    Util.mostrar_mensaje("Playlist creada correctamente.")
+
+    nuevas_playlists
+
+  end
+
+
+  # Read - Mostrar Playlists
+
+  def mostrar_playlists(playlists) do
+
+    Util.mostrar_mensaje("\n===== MIS PLAYLISTS =====")
+
+    if playlists == [] do
+
+      Util.mostrar_mensaje("No hay playlists creadas.")
+
+    else
+
+      Enum.each(playlists, fn playlist ->
+
+        IO.puts("ID: #{playlist.id}")
+        IO.puts("Nombre: #{playlist.name}")
+        IO.puts("Canciones: #{length(playlist.canciones)}")
+        IO.puts("-------------------------")
+
+      end)
+
+    end
+
+  end
+
+
+  # Update - Actualizar Playlist
+
+  def actualizar_playlist(playlists) do
+
+    Util.mostrar_mensaje("\n===== ACTUALIZAR PLAYLIST =====")
+
+    mostrar_playlists(playlists)
+
+    id = Util.ingresar("Ingrese el ID de la playlist: ", :entero)
+
+    playlist = Enum.find(playlists, fn playlist ->
+      playlist.id == id
+    end)
+
+    if playlist == nil do
+
+      Util.mostrar_mensaje("La playlist no existe.")
+
+      playlists
+
+    else
+
+      nuevo_name =
+        Util.ingresar("Ingrese el nuevo nombre: ", :texto)
+
+      nuevas_playlists =
+        Enum.map(playlists, fn playlist_actual ->
+
+          if playlist_actual.id == id do
+            %{playlist_actual | name: nuevo_name}
+          else
+            playlist_actual
+          end
+
+        end)
+
+      Util.mostrar_mensaje("Playlist actualizada correctamente.")
+
+      nuevas_playlists
+
+    end
+
+  end
+
+
+  # Delete - Eliminar Playlist
+
+  def eliminar_playlist(playlists) do
+
+    Util.mostrar_mensaje("\n===== ELIMINAR PLAYLIST =====")
+
+    mostrar_playlists(playlists)
+
+    id = Util.ingresar("Ingrese el ID de la playlist: ", :entero)
+
+    playlist = Enum.find(playlists, fn playlist ->
+      playlist.id == id
+    end)
+
+    if playlist == nil do
+
+      Util.mostrar_mensaje("La playlist no existe.")
+
+      playlists
+
+    else
+
+      nuevas_playlists =
+        Enum.filter(playlists, fn playlist_actual ->
+          playlist_actual.id != id
+        end)
+
+      Util.mostrar_mensaje(
+        "Playlist \"#{playlist.name}\" eliminada."
+      )
+
+      nuevas_playlists
+
+    end
+
+  end
+
+
+
 
 end
 
