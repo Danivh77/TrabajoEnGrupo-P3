@@ -212,6 +212,8 @@ defmodule MyMusic do
 
     Util.mostrar_mensaje("\n===== ACTUALIZAR CANCIÓN =====")
 
+    mostrar_canciones(canciones)
+
     id = Util.ingresar("Ingrese el ID de la canción: ", :entero)
 
     cancion = Enum.find(canciones, fn cancion ->
