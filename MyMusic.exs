@@ -66,15 +66,18 @@ defmodule MyMusic do
 
     case opcion do
       1 ->
-        menu_canciones(canciones, playlists)
+        nuevas_canciones = menu_canciones(canciones)
+        # Si se eliminó una canción, la quitamos también de las playlists
+        menu(nuevas_canciones, limpiar_playlists(playlists, nuevas_canciones))
       2 ->
-        menu_playlists(canciones, playlists)
+        nuevas_playlists = menu_playlists(playlists, canciones)
+        menu(canciones, nuevas_playlists)
       3 ->
         {nuevas_playlists, msg} = agregar_a_playlist(canciones, playlists)
         Util.mostrar_mensaje(msg)
         menu(canciones, nuevas_playlists)
       4 ->
-        {nuevas_playlists, msg} = quitar_de_playlist(playlists)
+        {nuevas_playlists, msg} = quitar_de_playlist(playlists, canciones)
         Util.mostrar_mensaje(msg)
         menu(canciones, nuevas_playlists)
       5 ->
@@ -309,6 +312,8 @@ defmodule MyMusic do
 
     Util.mostrar_mensaje("\n===== ELIMINAR CANCIÓN =====")
 
+    mostrar_canciones(canciones)
+
     id = Util.ingresar("Ingrese el ID de la canción: ", :entero)
 
     cancion = Enum.find(canciones, fn cancion ->
@@ -380,158 +385,8 @@ defmodule MyMusic do
   end
 
   # Menu de Playlists
-  #función para agregar canciones a una playlist
 
-  defp agregar_a_playlist(canciones, playlists) do
-  case seleccionar_cancion(canciones, "Seleccione el número de la canción que desea agregar: ") do
-    {:error, msg} ->
-      {playlists, msg}
-
-    {:ok, cancion_elegida} ->
-      case seleccionar_playlist(playlists, "Seleccione el número de la playlist a la que se agregará: ") do
-        {:error, msg} ->
-          {playlists, msg}
-
-        {:ok, playlist_elegida} ->
-          id_cancion = cancion_elegida.id
-
-          nuevas_playlists = Enum.map(playlists, fn playlist ->
-            if playlist.id == playlist_elegida.id do
-              if id_cancion in playlist.canciones do
-                playlist
-              else
-                %{playlist | canciones: playlist.canciones ++ [id_cancion]}
-              end
-            else
-              playlist
-            end
-          end)
-
-          {nuevas_playlists, "Canción \"#{cancion_elegida.titulo}\" agregada con éxito a \"#{playlist_elegida.nombre}\"."}
-      end
-    end
-  end
-
-  #funcion para quitar canciones de una playlist
-
-  defp quitar_de_playlist(playlists, canciones) do
-
-  case seleccionar_playlist(playlists, "Seleccione el número de la playlist de la que desea quitar una canción: ") do
-    {:error, msg} ->
-      {playlists, msg}
-
-    {:ok, playlist_elegida} ->
-
-      canciones_de_playlist = Enum.filter(canciones, fn cancion -> cancion.id in playlist_elegida.canciones end)
-
-      case seleccionar_cancion(canciones_de_playlist, "Seleccione el número de la canción a remover: ") do
-        {:error, msg} ->
-          {playlists, msg}
-
-        {:ok, cancion_a_quitar} ->
-          id_cancion = cancion_a_quitar.id
-
-          nuevas_playlists = Enum.map(playlists, fn playlist ->
-            if playlist.id == playlist_elegida.id do
-              %{playlist | canciones: Enum.reject(playlist.canciones, fn id -> id == id_cancion end)}
-            else
-              playlist
-            end
-          end)
-
-          {nuevas_playlists, "Canción \"#{cancion_a_quitar.titulo}\" removida de \"#{playlist_elegida.nombre}\"."}
-      end
-    end
-  end
-
-#numeración de canciones que se pueden elegir
-  defp seleccionar_cancion(canciones, mensaje_prompt) do
-    if Enum.empty?(canciones) do
-      {:error, "No hay canciones disponibles."}
-    else
-      IO.puts("\n--- CANCIONES DISPONIBLES ---")
-
-      Enum.with_index(canciones, 1)
-      |> Enum.each(fn {cancion, i} ->
-        IO.puts("#{i}. \"#{cancion.titulo}\" por #{cancion.artista}")
-      end)
-      IO.puts("-----------------------------\n")
-
-      opcion = Util.ingresar(mensaje_prompt, :entero)
-      cancion_elegida = Enum.at(canciones, opcion - 1)
-
-      if cancion_elegida do
-        {:ok, cancion_elegida}
-      else
-        {:error, "Opción inválida. El número ingresado no está en la lista."}
-      end
-    end
-  end
-
-  #numeración de playlists que se pueden elegir
-  defp seleccionar_playlist(playlists, mensaje_prompt) do
-    if Enum.empty?(playlists) do
-      {:error, "No hay playlists disponibles."}
-    else
-      IO.puts("\n--- PLAYLISTS DISPONIBLES ---")
-
-      Enum.with_index(playlists, 1)
-      |> Enum.each(fn {playlist, i} ->
-        IO.puts("#{i}. #{playlist.nombre} (#{length(playlist.canciones)} canciones)")
-      end)
-      IO.puts("-----------------------------\n")
-
-      opcion = Util.ingresar(mensaje_prompt, :entero)
-      playlist_elegida = Enum.at(playlists, opcion - 1)
-
-      if playlist_elegida do
-        {:ok, playlist_elegida}
-      else
-        {:error, "Opción inválida. El número ingresado no está en la lista."}
-      end
-    end
-  end
-
-  defp ver_estadisticas([], _playlists) do
-    Util.mostrar_mensaje("No hay canciones registradas para calcular estadísticas.")
-  end
-
-  defp ver_estadisticas(canciones, playlists) do
-    total_canciones = length(canciones)
-    total_playlists = length(playlists)
-
-    # Enum.count para contar cuántas canciones tienen favorita: true
-    total_favoritas = Enum.count(canciones, fn cancion -> cancion.favorita == true end)
-
-    # Enum.max_by para obtener el mapa de la canción con mayor duración
-    cancion_mas_larga = Enum.max_by(canciones, fn cancion -> cancion.duracion end)
-
-    # Enum.reduce para sumar la duración total de todas las canciones
-    tiempo_total_seg = Enum.reduce(canciones, 0, fn cancion, acc -> cancion.duracion + acc end)
-
-    mensaje = """
-    ========================================
-              ESTADÍSTICAS MyMusic
-    ========================================
-    • Total de canciones en el sistema: #{total_canciones}
-    • Total de playlists creadas: #{total_playlists}
-    • Canciones favoritas: #{total_favoritas}
-    • Canción más larga: "#{cancion_mas_larga.titulo}" de #{cancion_mas_larga.artista} (#{cancion_mas_larga.duracion} seg)
-    • Tiempo total de música guardada: #{tiempo_total_seg} segundos
-    ========================================
-    """
-
-    Util.mostrar_mensaje(mensaje)
-  end
-
-
-
-
-
-
-# Menu de Playlists
-
-  def menu_playlists(playlists) do
+  def menu_playlists(playlists, canciones) do
 
     Util.mostrar_mensaje("""
     =====================================
@@ -542,7 +397,8 @@ defmodule MyMusic do
     2. Ver playlists
     3. Actualizar playlist
     4. Eliminar playlist
-    5. Volver
+    5. Ver contenido de una playlist
+    6. Volver
 
     """)
 
@@ -551,47 +407,57 @@ defmodule MyMusic do
     case opcion do
 
       1 ->
-
         nuevas_playlists = crear_playlist(playlists)
-
-        menu_playlists(nuevas_playlists)
-
+        menu_playlists(nuevas_playlists, canciones)
 
       2 ->
-
         mostrar_playlists(playlists)
-
-        menu_playlists(playlists)
-
+        menu_playlists(playlists, canciones)
 
       3 ->
-
         nuevas_playlists = actualizar_playlist(playlists)
-
-        menu_playlists(nuevas_playlists)
-
+        menu_playlists(nuevas_playlists, canciones)
 
       4 ->
-
         nuevas_playlists = eliminar_playlist(playlists)
-
-        menu_playlists(nuevas_playlists)
-
+        menu_playlists(nuevas_playlists, canciones)
 
       5 ->
+        ver_contenido_playlist(playlists, canciones)
+        menu_playlists(playlists, canciones)
 
+      6 ->
         Util.mostrar_mensaje("Volviendo al menú principal...")
-
+        playlists
 
       _ ->
-
         Util.mostrar_mensaje("Opción inválida.")
-
-        menu_playlists(playlists)
+        menu_playlists(playlists, canciones)
 
     end
   end
 
+  # Ver el contenido de una playlist
+  def ver_contenido_playlist(playlists, canciones) do
+
+    case seleccionar_playlist(playlists, "Seleccione el número de la playlist que desea ver: ") do
+      {:error, msg} ->
+        Util.mostrar_mensaje(msg)
+
+      {:ok, playlist} ->
+        Util.mostrar_mensaje("\n===== #{playlist.nombre} =====")
+        Util.mostrar_mensaje(playlist.descripcion)
+
+        canciones_de_playlist =
+          Enum.filter(canciones, fn cancion -> cancion.id in playlist.canciones end)
+
+        if canciones_de_playlist == [] do
+          Util.mostrar_mensaje("Esta playlist no tiene canciones.")
+        else
+          Enum.each(canciones_de_playlist, fn cancion -> mostrar_cancion(cancion) end)
+        end
+    end
+  end
 
 
   # Create - Crear Playlist
@@ -600,7 +466,8 @@ defmodule MyMusic do
 
     Util.mostrar_mensaje("\n===== CREAR PLAYLIST =====")
 
-    name = Util.ingresar("Ingrese el nombre de la playlist: ", :texto)
+    nombre = Util.ingresar("Ingrese el nombre de la playlist: ", :texto)
+    descripcion = Util.ingresar("Ingrese la descripción: ", :texto)
 
     nuevo_id =
       case playlists do
@@ -610,7 +477,8 @@ defmodule MyMusic do
 
     nueva_playlist = %{
       id: nuevo_id,
-      name: name,
+      nombre: nombre,
+      descripcion: descripcion,
       canciones: []
     }
 
@@ -638,7 +506,8 @@ defmodule MyMusic do
       Enum.each(playlists, fn playlist ->
 
         IO.puts("ID: #{playlist.id}")
-        IO.puts("Nombre: #{playlist.name}")
+        IO.puts("Nombre: #{playlist.nombre}")
+        IO.puts("Descripción: #{playlist.descripcion}")
         IO.puts("Canciones: #{length(playlist.canciones)}")
         IO.puts("-------------------------")
 
@@ -671,14 +540,14 @@ defmodule MyMusic do
 
     else
 
-      nuevo_name =
+      nuevo_nombre =
         Util.ingresar("Ingrese el nuevo nombre: ", :texto)
 
       nuevas_playlists =
         Enum.map(playlists, fn playlist_actual ->
 
           if playlist_actual.id == id do
-            %{playlist_actual | name: nuevo_name}
+            %{playlist_actual | nombre: nuevo_nombre}
           else
             playlist_actual
           end
@@ -722,13 +591,61 @@ defmodule MyMusic do
         end)
 
       Util.mostrar_mensaje(
-        "Playlist \"#{playlist.name}\" eliminada."
+        "Playlist \"#{playlist.nombre}\" eliminada."
       )
 
       nuevas_playlists
 
     end
 
+  end
+
+  # Genera el siguiente ID disponible para una lista de canciones
+  defp siguiente_id([]), do: 1
+  defp siguiente_id(canciones) do
+    Enum.max_by(canciones, fn cancion -> cancion.id end).id + 1
+  end
+
+  # Quita de las playlists los IDs de canciones que ya no existen
+  defp limpiar_playlists(playlists, canciones) do
+    ids_validos = Enum.map(canciones, fn cancion -> cancion.id end)
+
+    Enum.map(playlists, fn playlist ->
+      %{playlist | canciones: Enum.filter(playlist.canciones, fn id -> id in ids_validos end)}
+    end)
+  end
+
+  # Estadísticas generales
+  defp ver_estadisticas([], _playlists) do
+    Util.mostrar_mensaje("No hay canciones registradas para calcular estadísticas.")
+  end
+
+  defp ver_estadisticas(canciones, playlists) do
+    total_canciones = length(canciones)
+    total_playlists = length(playlists)
+
+    # Enum.count para contar cuántas canciones tienen favorita: true
+    total_favoritas = Enum.count(canciones, fn cancion -> cancion.favorita == true end)
+
+    # Enum.max_by para obtener el mapa de la canción con mayor duración
+    cancion_mas_larga = Enum.max_by(canciones, fn cancion -> cancion.duracion end)
+
+    # Enum.reduce para sumar la duración total de todas las canciones
+    tiempo_total_seg = Enum.reduce(canciones, 0, fn cancion, acc -> cancion.duracion + acc end)
+
+    mensaje = """
+    ========================================
+              ESTADÍSTICAS MyMusic
+    ========================================
+    • Total de canciones en el sistema: #{total_canciones}
+    • Total de playlists creadas: #{total_playlists}
+    • Canciones favoritas: #{total_favoritas}
+    • Canción más larga: "#{cancion_mas_larga.titulo}" de #{cancion_mas_larga.artista} (#{cancion_mas_larga.duracion} seg)
+    • Tiempo total de música guardada: #{tiempo_total_seg} segundos
+    ========================================
+    """
+
+    Util.mostrar_mensaje(mensaje)
   end
 
   #función para agregar canciones a una playlist
