@@ -334,6 +334,49 @@ defmodule MyMusic do
     end
   end
 
+  # Buscar Canción
+
+  def buscar_cancion(canciones) do
+
+    Util.mostrar_mensaje("\n===== BUSCAR CANCIÓN =====")
+
+    texto =
+      Util.ingresar(
+        "Ingrese título o artista: ",
+        :texto
+      )
+      |> String.downcase()
+
+    resultados =
+      Enum.filter(canciones, fn cancion ->
+
+        String.contains?(
+          String.downcase(cancion.titulo),
+          texto
+        ) or
+
+        String.contains?(
+          String.downcase(cancion.artista),
+          texto
+        )
+
+      end)
+
+    if resultados == [] do
+
+      Util.mostrar_mensaje("No se encontraron canciones.")
+
+    else
+
+      Util.mostrar_mensaje("\n Resultados:")
+
+      Enum.each(resultados, fn cancion ->
+        mostrar_cancion(cancion)
+      end)
+
+    end
+  end
+
 
 
 
