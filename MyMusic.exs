@@ -91,7 +91,48 @@ defmodule MyMusic do
       _ ->
         Util.mostrar_mensaje("Opción inválida.")
         menu_canciones(canciones)
+  defp menu(canciones, playlists) do
+
+    """
+    ========================================
+                  MyMusic
+    ========================================
+    1. Gestionar canciones
+    2. Gestionar playlists
+    3. Agregar canción a una playlist
+    4. Eliminar canción de una playlist
+    5. Ver estadísticas
+    6. Salir
+    """
+    |>Util.mostrar_mensaje()
+
+    opcion = "Seleccione una opción: "
+    |> Util.ingresar(:entero)
+
+    case opcion do
+      1 ->
+        menu_canciones(canciones, playlists)
+      2 ->
+        menu_playlists(canciones, playlists)
+      3 ->
+        {nuevas_playlists, msg} = agregar_a_playlist(canciones, playlists)
+        Util.mostrar_mensaje(msg)
+        menu(canciones, nuevas_playlists)
+      4 ->
+        {nuevas_playlists, msg} = quitar_de_playlist(playlists)
+        Util.mostrar_mensaje(msg)
+        menu(canciones, nuevas_playlists)
+      5 ->
+        ver_estadisticas(canciones, playlists)
+        menu(canciones, playlists)
+      6 ->
+        Util.mostrar_mensaje("¡Gracias por usar MyMusic!")
+      _ ->
+        Util.mostrar_mensaje("Opción inválida.")
+        menu(canciones, playlists)
     end
   end
 
 end
+
+MyMusic.iniciar()
