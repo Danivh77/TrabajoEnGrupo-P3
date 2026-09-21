@@ -327,7 +327,7 @@ defmodule MyMusic do
         end)
 
       Util.mostrar_mensaje(
-        "🗑️ Canción \"#{cancion.titulo}\" eliminada."
+        "Canción \"#{cancion.titulo}\" eliminada."
       )
 
       nuevas_canciones
