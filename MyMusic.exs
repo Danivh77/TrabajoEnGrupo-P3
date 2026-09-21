@@ -379,124 +379,7 @@ defmodule MyMusic do
     end
   end
 
-  #función para agregar canciones a una playlist
-
-  defp agregar_a_playlist(canciones, playlists) do
-  case seleccionar_cancion(canciones, "Seleccione el número de la canción que desea agregar: ") do
-    {:error, msg} ->
-      {playlists, msg}
-
-    {:ok, cancion_elegida} ->
-      case seleccionar_playlist(playlists, "Seleccione el número de la playlist a la que se agregará: ") do
-        {:error, msg} ->
-          {playlists, msg}
-
-        {:ok, playlist_elegida} ->
-          id_cancion = cancion_elegida.id
-
-          nuevas_playlists = Enum.map(playlists, fn playlist ->
-            if playlist.id == playlist_elegida.id do
-              if id_cancion in playlist.canciones do
-                playlist
-              else
-                %{playlist | canciones: playlist.canciones ++ [id_cancion]}
-              end
-            else
-              playlist
-            end
-          end)
-
-          {nuevas_playlists, "Canción \"#{cancion_elegida.titulo}\" agregada con éxito a \"#{playlist_elegida.nombre}\"."}
-      end
-    end
-  end
-
-  #funcion para quitar canciones de una playlist
-
-  defp quitar_de_playlist(playlists, canciones) do
-
-  case seleccionar_playlist(playlists, "Seleccione el número de la playlist de la que desea quitar una canción: ") do
-    {:error, msg} ->
-      {playlists, msg}
-
-    {:ok, playlist_elegida} ->
-
-      canciones_de_playlist = Enum.filter(canciones, fn cancion -> cancion.id in playlist_elegida.canciones end)
-
-      case seleccionar_cancion(canciones_de_playlist, "Seleccione el número de la canción a remover: ") do
-        {:error, msg} ->
-          {playlists, msg}
-
-        {:ok, cancion_a_quitar} ->
-          id_cancion = cancion_a_quitar.id
-
-          nuevas_playlists = Enum.map(playlists, fn playlist ->
-            if playlist.id == playlist_elegida.id do
-              %{playlist | canciones: Enum.reject(playlist.canciones, fn id -> id == id_cancion end)}
-            else
-              playlist
-            end
-          end)
-
-          {nuevas_playlists, "Canción \"#{cancion_a_quitar.titulo}\" removida de \"#{playlist_elegida.nombre}\"."}
-      end
-    end
-  end
-
-#numeración de canciones que se pueden elegir
-  defp seleccionar_cancion(canciones, mensaje_prompt) do
-    if Enum.empty?(canciones) do
-      {:error, "No hay canciones disponibles."}
-    else
-      IO.puts("\n--- CANCIONES DISPONIBLES ---")
-
-      Enum.with_index(canciones, 1)
-      |> Enum.each(fn {cancion, i} ->
-        IO.puts("#{i}. \"#{cancion.titulo}\" por #{cancion.artista}")
-      end)
-      IO.puts("-----------------------------\n")
-
-      opcion = Util.ingresar(mensaje_prompt, :entero)
-      cancion_elegida = Enum.at(canciones, opcion - 1)
-
-      if cancion_elegida do
-        {:ok, cancion_elegida}
-      else
-        {:error, "Opción inválida. El número ingresado no está en la lista."}
-      end
-    end
-  end
-
-  #numeración de playlists que se pueden elegir
-  defp seleccionar_playlist(playlists, mensaje_prompt) do
-    if Enum.empty?(playlists) do
-      {:error, "No hay playlists disponibles."}
-    else
-      IO.puts("\n--- PLAYLISTS DISPONIBLES ---")
-
-      Enum.with_index(playlists, 1)
-      |> Enum.each(fn {playlist, i} ->
-        IO.puts("#{i}. #{playlist.nombre} (#{length(playlist.canciones)} canciones)")
-      end)
-      IO.puts("-----------------------------\n")
-
-      opcion = Util.ingresar(mensaje_prompt, :entero)
-      playlist_elegida = Enum.at(playlists, opcion - 1)
-
-      if playlist_elegida do
-        {:ok, playlist_elegida}
-      else
-        {:error, "Opción inválida. El número ingresado no está en la lista."}
-      end
-    end
-  end
-
-
-
-
-
-
-# Menu de Playlists
+  # Menu de Playlists
 
   def menu_playlists(playlists) do
 
@@ -698,8 +581,117 @@ defmodule MyMusic do
 
   end
 
+  #función para agregar canciones a una playlist
 
+  defp agregar_a_playlist(canciones, playlists) do
+  case seleccionar_cancion(canciones, "Seleccione el número de la canción que desea agregar: ") do
+    {:error, msg} ->
+      {playlists, msg}
 
+    {:ok, cancion_elegida} ->
+      case seleccionar_playlist(playlists, "Seleccione el número de la playlist a la que se agregará: ") do
+        {:error, msg} ->
+          {playlists, msg}
+
+        {:ok, playlist_elegida} ->
+          id_cancion = cancion_elegida.id
+
+          nuevas_playlists = Enum.map(playlists, fn playlist ->
+            if playlist.id == playlist_elegida.id do
+              if id_cancion in playlist.canciones do
+                playlist
+              else
+                %{playlist | canciones: playlist.canciones ++ [id_cancion]}
+              end
+            else
+              playlist
+            end
+          end)
+
+          {nuevas_playlists, "Canción \"#{cancion_elegida.titulo}\" agregada con éxito a \"#{playlist_elegida.nombre}\"."}
+      end
+    end
+  end
+
+  #funcion para quitar canciones de una playlist
+
+  defp quitar_de_playlist(playlists, canciones) do
+
+  case seleccionar_playlist(playlists, "Seleccione el número de la playlist de la que desea quitar una canción: ") do
+    {:error, msg} ->
+      {playlists, msg}
+
+    {:ok, playlist_elegida} ->
+
+      canciones_de_playlist = Enum.filter(canciones, fn cancion -> cancion.id in playlist_elegida.canciones end)
+
+      case seleccionar_cancion(canciones_de_playlist, "Seleccione el número de la canción a remover: ") do
+        {:error, msg} ->
+          {playlists, msg}
+
+        {:ok, cancion_a_quitar} ->
+          id_cancion = cancion_a_quitar.id
+
+          nuevas_playlists = Enum.map(playlists, fn playlist ->
+            if playlist.id == playlist_elegida.id do
+              %{playlist | canciones: Enum.reject(playlist.canciones, fn id -> id == id_cancion end)}
+            else
+              playlist
+            end
+          end)
+
+          {nuevas_playlists, "Canción \"#{cancion_a_quitar.titulo}\" removida de \"#{playlist_elegida.nombre}\"."}
+      end
+    end
+  end
+
+#numeración de canciones que se pueden elegir
+  defp seleccionar_cancion(canciones, mensaje_prompt) do
+    if Enum.empty?(canciones) do
+      {:error, "No hay canciones disponibles."}
+    else
+      IO.puts("\n--- CANCIONES DISPONIBLES ---")
+
+      Enum.with_index(canciones, 1)
+      |> Enum.each(fn {cancion, i} ->
+        IO.puts("#{i}. \"#{cancion.titulo}\" por #{cancion.artista}")
+      end)
+      IO.puts("-----------------------------\n")
+
+      opcion = Util.ingresar(mensaje_prompt, :entero)
+      cancion_elegida = Enum.at(canciones, opcion - 1)
+
+      if cancion_elegida do
+        {:ok, cancion_elegida}
+      else
+        {:error, "Opción inválida. El número ingresado no está en la lista."}
+      end
+    end
+  end
+
+  #numeración de playlists que se pueden elegir
+  defp seleccionar_playlist(playlists, mensaje_prompt) do
+    if Enum.empty?(playlists) do
+      {:error, "No hay playlists disponibles."}
+    else
+      IO.puts("\n--- PLAYLISTS DISPONIBLES ---")
+
+      Enum.with_index(playlists, 1)
+      |> Enum.each(fn {playlist, i} ->
+        IO.puts("#{i}. #{playlist.nombre} (#{length(playlist.canciones)} canciones)")
+      end)
+      IO.puts("-----------------------------\n")
+
+      opcion = Util.ingresar(mensaje_prompt, :entero)
+      playlist_elegida = Enum.at(playlists, opcion - 1)
+
+      if playlist_elegida do
+        {:ok, playlist_elegida}
+      else
+        {:error, "Opción inválida. El número ingresado no está en la lista."}
+      end
+    end
+  end
 
 end
 
