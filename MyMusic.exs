@@ -66,15 +66,18 @@ defmodule MyMusic do
 
     case opcion do
       1 ->
-        menu_canciones(canciones, playlists)
+        nuevas_canciones = menu_canciones(canciones)
+        # Si se eliminó una canción, la quitamos también de las playlists
+        menu(nuevas_canciones, limpiar_playlists(playlists, nuevas_canciones))
       2 ->
-        menu_playlists(canciones, playlists)
+        nuevas_playlists = menu_playlists(playlists, canciones)
+        menu(canciones, nuevas_playlists)
       3 ->
         {nuevas_playlists, msg} = agregar_a_playlist(canciones, playlists)
         Util.mostrar_mensaje(msg)
         menu(canciones, nuevas_playlists)
       4 ->
-        {nuevas_playlists, msg} = quitar_de_playlist(playlists)
+        {nuevas_playlists, msg} = quitar_de_playlist(playlists, canciones)
         Util.mostrar_mensaje(msg)
         menu(canciones, nuevas_playlists)
       5 ->
@@ -309,6 +312,8 @@ defmodule MyMusic do
 
     Util.mostrar_mensaje("\n===== ELIMINAR CANCIÓN =====")
 
+    mostrar_canciones(canciones)
+
     id = Util.ingresar("Ingrese el ID de la canción: ", :entero)
 
     cancion = Enum.find(canciones, fn cancion ->
@@ -377,6 +382,270 @@ defmodule MyMusic do
       end)
 
     end
+  end
+
+  # Menu de Playlists
+
+  def menu_playlists(playlists, canciones) do
+
+    Util.mostrar_mensaje("""
+    =====================================
+    ||           PLAYLISTS              ||
+    =====================================
+
+    1. Crear playlist
+    2. Ver playlists
+    3. Actualizar playlist
+    4. Eliminar playlist
+    5. Ver contenido de una playlist
+    6. Volver
+
+    """)
+
+    opcion = Util.ingresar("Seleccione una opción: ", :entero)
+
+    case opcion do
+
+      1 ->
+        nuevas_playlists = crear_playlist(playlists)
+        menu_playlists(nuevas_playlists, canciones)
+
+      2 ->
+        mostrar_playlists(playlists)
+        menu_playlists(playlists, canciones)
+
+      3 ->
+        nuevas_playlists = actualizar_playlist(playlists)
+        menu_playlists(nuevas_playlists, canciones)
+
+      4 ->
+        nuevas_playlists = eliminar_playlist(playlists)
+        menu_playlists(nuevas_playlists, canciones)
+
+      5 ->
+        ver_contenido_playlist(playlists, canciones)
+        menu_playlists(playlists, canciones)
+
+      6 ->
+        Util.mostrar_mensaje("Volviendo al menú principal...")
+        playlists
+
+      _ ->
+        Util.mostrar_mensaje("Opción inválida.")
+        menu_playlists(playlists, canciones)
+
+    end
+  end
+
+  # Ver el contenido de una playlist
+  def ver_contenido_playlist(playlists, canciones) do
+
+    case seleccionar_playlist(playlists, "Seleccione el número de la playlist que desea ver: ") do
+      {:error, msg} ->
+        Util.mostrar_mensaje(msg)
+
+      {:ok, playlist} ->
+        Util.mostrar_mensaje("\n===== #{playlist.nombre} =====")
+        Util.mostrar_mensaje(playlist.descripcion)
+
+        canciones_de_playlist =
+          Enum.filter(canciones, fn cancion -> cancion.id in playlist.canciones end)
+
+        if canciones_de_playlist == [] do
+          Util.mostrar_mensaje("Esta playlist no tiene canciones.")
+        else
+          Enum.each(canciones_de_playlist, fn cancion -> mostrar_cancion(cancion) end)
+        end
+    end
+  end
+
+
+  # Create - Crear Playlist
+
+  def crear_playlist(playlists) do
+
+    Util.mostrar_mensaje("\n===== CREAR PLAYLIST =====")
+
+    nombre = Util.ingresar("Ingrese el nombre de la playlist: ", :texto)
+    descripcion = Util.ingresar("Ingrese la descripción: ", :texto)
+
+    nuevo_id =
+      case playlists do
+        [] -> 1
+        _ -> Enum.max_by(playlists, fn playlist -> playlist.id end).id + 1
+      end
+
+    nueva_playlist = %{
+      id: nuevo_id,
+      nombre: nombre,
+      descripcion: descripcion,
+      canciones: []
+    }
+
+    nuevas_playlists = playlists ++ [nueva_playlist]
+
+    Util.mostrar_mensaje("Playlist creada correctamente.")
+
+    nuevas_playlists
+
+  end
+
+
+  # Read - Mostrar Playlists
+
+  def mostrar_playlists(playlists) do
+
+    Util.mostrar_mensaje("\n===== MIS PLAYLISTS =====")
+
+    if playlists == [] do
+
+      Util.mostrar_mensaje("No hay playlists creadas.")
+
+    else
+
+      Enum.each(playlists, fn playlist ->
+
+        IO.puts("ID: #{playlist.id}")
+        IO.puts("Nombre: #{playlist.nombre}")
+        IO.puts("Descripción: #{playlist.descripcion}")
+        IO.puts("Canciones: #{length(playlist.canciones)}")
+        IO.puts("-------------------------")
+
+      end)
+
+    end
+
+  end
+
+
+  # Update - Actualizar Playlist
+
+  def actualizar_playlist(playlists) do
+
+    Util.mostrar_mensaje("\n===== ACTUALIZAR PLAYLIST =====")
+
+    mostrar_playlists(playlists)
+
+    id = Util.ingresar("Ingrese el ID de la playlist: ", :entero)
+
+    playlist = Enum.find(playlists, fn playlist ->
+      playlist.id == id
+    end)
+
+    if playlist == nil do
+
+      Util.mostrar_mensaje("La playlist no existe.")
+
+      playlists
+
+    else
+
+      nuevo_nombre =
+        Util.ingresar("Ingrese el nuevo nombre: ", :texto)
+
+      nuevas_playlists =
+        Enum.map(playlists, fn playlist_actual ->
+
+          if playlist_actual.id == id do
+            %{playlist_actual | nombre: nuevo_nombre}
+          else
+            playlist_actual
+          end
+
+        end)
+
+      Util.mostrar_mensaje("Playlist actualizada correctamente.")
+
+      nuevas_playlists
+
+    end
+
+  end
+
+
+  # Delete - Eliminar Playlist
+
+  def eliminar_playlist(playlists) do
+
+    Util.mostrar_mensaje("\n===== ELIMINAR PLAYLIST =====")
+
+    mostrar_playlists(playlists)
+
+    id = Util.ingresar("Ingrese el ID de la playlist: ", :entero)
+
+    playlist = Enum.find(playlists, fn playlist ->
+      playlist.id == id
+    end)
+
+    if playlist == nil do
+
+      Util.mostrar_mensaje("La playlist no existe.")
+
+      playlists
+
+    else
+
+      nuevas_playlists =
+        Enum.filter(playlists, fn playlist_actual ->
+          playlist_actual.id != id
+        end)
+
+      Util.mostrar_mensaje(
+        "Playlist \"#{playlist.nombre}\" eliminada."
+      )
+
+      nuevas_playlists
+
+    end
+
+  end
+
+  # Genera el siguiente ID disponible para una lista de canciones
+  defp siguiente_id([]), do: 1
+  defp siguiente_id(canciones) do
+    Enum.max_by(canciones, fn cancion -> cancion.id end).id + 1
+  end
+
+  # Quita de las playlists los IDs de canciones que ya no existen
+  defp limpiar_playlists(playlists, canciones) do
+    ids_validos = Enum.map(canciones, fn cancion -> cancion.id end)
+
+    Enum.map(playlists, fn playlist ->
+      %{playlist | canciones: Enum.filter(playlist.canciones, fn id -> id in ids_validos end)}
+    end)
+  end
+
+  # Estadísticas generales
+  defp ver_estadisticas([], _playlists) do
+    Util.mostrar_mensaje("No hay canciones registradas para calcular estadísticas.")
+  end
+
+  defp ver_estadisticas(canciones, playlists) do
+    total_canciones = length(canciones)
+    total_playlists = length(playlists)
+
+    # Enum.count para contar cuántas canciones tienen favorita: true
+    total_favoritas = Enum.count(canciones, fn cancion -> cancion.favorita == true end)
+
+    # Enum.max_by para obtener el mapa de la canción con mayor duración
+    cancion_mas_larga = Enum.max_by(canciones, fn cancion -> cancion.duracion end)
+
+    # Enum.reduce para sumar la duración total de todas las canciones
+    tiempo_total_seg = Enum.reduce(canciones, 0, fn cancion, acc -> cancion.duracion + acc end)
+
+    mensaje = """
+    ========================================
+              ESTADÍSTICAS MyMusic
+    ========================================
+    • Total de canciones en el sistema: #{total_canciones}
+    • Total de playlists creadas: #{total_playlists}
+    • Canciones favoritas: #{total_favoritas}
+    • Canción más larga: "#{cancion_mas_larga.titulo}" de #{cancion_mas_larga.artista} (#{cancion_mas_larga.duracion} seg)
+    • Tiempo total de música guardada: #{tiempo_total_seg} segundos
+    ========================================
+    """
+
+    Util.mostrar_mensaje(mensaje)
   end
 
   #función para agregar canciones a una playlist
@@ -490,248 +759,6 @@ defmodule MyMusic do
       end
     end
   end
-
-  defp ver_estadisticas([], _playlists) do
-    Util.mostrar_mensaje("No hay canciones registradas para calcular estadísticas.")
-  end
-
-  defp ver_estadisticas(canciones, playlists) do
-    total_canciones = length(canciones)
-    total_playlists = length(playlists)
-
-    # Enum.count para contar cuántas canciones tienen favorita: true
-    total_favoritas = Enum.count(canciones, fn cancion -> cancion.favorita == true end)
-
-    # Enum.max_by para obtener el mapa de la canción con mayor duración
-    cancion_mas_larga = Enum.max_by(canciones, fn cancion -> cancion.duracion end)
-
-    # Enum.reduce para sumar la duración total de todas las canciones
-    tiempo_total_seg = Enum.reduce(canciones, 0, fn cancion, acc -> cancion.duracion + acc end)
-
-    mensaje = """
-    ========================================
-              ESTADÍSTICAS MyMusic
-    ========================================
-    • Total de canciones en el sistema: #{total_canciones}
-    • Total de playlists creadas: #{total_playlists}
-    • Canciones favoritas: #{total_favoritas}
-    • Canción más larga: "#{cancion_mas_larga.titulo}" de #{cancion_mas_larga.artista} (#{cancion_mas_larga.duracion} seg)
-    • Tiempo total de música guardada: #{tiempo_total_seg} segundos
-    ========================================
-    """
-
-    Util.mostrar_mensaje(mensaje)
-  end
-
-
-
-
-
-
-# Menu de Playlists
-
-  def menu_playlists(playlists) do
-
-    Util.mostrar_mensaje("""
-    =====================================
-    ||           PLAYLISTS              ||
-    =====================================
-
-    1. Crear playlist
-    2. Ver playlists
-    3. Actualizar playlist
-    4. Eliminar playlist
-    5. Volver
-
-    """)
-
-    opcion = Util.ingresar("Seleccione una opción: ", :entero)
-
-    case opcion do
-
-      1 ->
-
-        nuevas_playlists = crear_playlist(playlists)
-
-        menu_playlists(nuevas_playlists)
-
-
-      2 ->
-
-        mostrar_playlists(playlists)
-
-        menu_playlists(playlists)
-
-
-      3 ->
-
-        nuevas_playlists = actualizar_playlist(playlists)
-
-        menu_playlists(nuevas_playlists)
-
-
-      4 ->
-
-        nuevas_playlists = eliminar_playlist(playlists)
-
-        menu_playlists(nuevas_playlists)
-
-
-      5 ->
-
-        Util.mostrar_mensaje("Volviendo al menú principal...")
-
-
-      _ ->
-
-        Util.mostrar_mensaje("Opción inválida.")
-
-        menu_playlists(playlists)
-
-    end
-  end
-
-
-
-  # Create - Crear Playlist
-
-  def crear_playlist(playlists) do
-
-    Util.mostrar_mensaje("\n===== CREAR PLAYLIST =====")
-
-    name = Util.ingresar("Ingrese el nombre de la playlist: ", :texto)
-
-    nuevo_id =
-      case playlists do
-        [] -> 1
-        _ -> Enum.max_by(playlists, fn playlist -> playlist.id end).id + 1
-      end
-
-    nueva_playlist = %{
-      id: nuevo_id,
-      name: name,
-      canciones: []
-    }
-
-    nuevas_playlists = playlists ++ [nueva_playlist]
-
-    Util.mostrar_mensaje("Playlist creada correctamente.")
-
-    nuevas_playlists
-
-  end
-
-
-  # Read - Mostrar Playlists
-
-  def mostrar_playlists(playlists) do
-
-    Util.mostrar_mensaje("\n===== MIS PLAYLISTS =====")
-
-    if playlists == [] do
-
-      Util.mostrar_mensaje("No hay playlists creadas.")
-
-    else
-
-      Enum.each(playlists, fn playlist ->
-
-        IO.puts("ID: #{playlist.id}")
-        IO.puts("Nombre: #{playlist.name}")
-        IO.puts("Canciones: #{length(playlist.canciones)}")
-        IO.puts("-------------------------")
-
-      end)
-
-    end
-
-  end
-
-
-  # Update - Actualizar Playlist
-
-  def actualizar_playlist(playlists) do
-
-    Util.mostrar_mensaje("\n===== ACTUALIZAR PLAYLIST =====")
-
-    mostrar_playlists(playlists)
-
-    id = Util.ingresar("Ingrese el ID de la playlist: ", :entero)
-
-    playlist = Enum.find(playlists, fn playlist ->
-      playlist.id == id
-    end)
-
-    if playlist == nil do
-
-      Util.mostrar_mensaje("La playlist no existe.")
-
-      playlists
-
-    else
-
-      nuevo_name =
-        Util.ingresar("Ingrese el nuevo nombre: ", :texto)
-
-      nuevas_playlists =
-        Enum.map(playlists, fn playlist_actual ->
-
-          if playlist_actual.id == id do
-            %{playlist_actual | name: nuevo_name}
-          else
-            playlist_actual
-          end
-
-        end)
-
-      Util.mostrar_mensaje("Playlist actualizada correctamente.")
-
-      nuevas_playlists
-
-    end
-
-  end
-
-
-  # Delete - Eliminar Playlist
-
-  def eliminar_playlist(playlists) do
-
-    Util.mostrar_mensaje("\n===== ELIMINAR PLAYLIST =====")
-
-    mostrar_playlists(playlists)
-
-    id = Util.ingresar("Ingrese el ID de la playlist: ", :entero)
-
-    playlist = Enum.find(playlists, fn playlist ->
-      playlist.id == id
-    end)
-
-    if playlist == nil do
-
-      Util.mostrar_mensaje("La playlist no existe.")
-
-      playlists
-
-    else
-
-      nuevas_playlists =
-        Enum.filter(playlists, fn playlist_actual ->
-          playlist_actual.id != id
-        end)
-
-      Util.mostrar_mensaje(
-        "Playlist \"#{playlist.name}\" eliminada."
-      )
-
-      nuevas_playlists
-
-    end
-
-  end
-
-
-
 
 end
 
