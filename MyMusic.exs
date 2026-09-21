@@ -491,6 +491,38 @@ defmodule MyMusic do
     end
   end
 
+  defp ver_estadisticas([], _playlists) do
+    Util.mostrar_mensaje("No hay canciones registradas para calcular estadísticas.")
+  end
+
+  defp ver_estadisticas(canciones, playlists) do
+    total_canciones = length(canciones)
+    total_playlists = length(playlists)
+
+    # Enum.count para contar cuántas canciones tienen favorita: true
+    total_favoritas = Enum.count(canciones, fn cancion -> cancion.favorita == true end)
+
+    # Enum.max_by para obtener el mapa de la canción con mayor duración
+    cancion_mas_larga = Enum.max_by(canciones, fn cancion -> cancion.duracion end)
+
+    # Enum.reduce para sumar la duración total de todas las canciones
+    tiempo_total_seg = Enum.reduce(canciones, 0, fn cancion, acc -> cancion.duracion + acc end)
+
+    mensaje = """
+    ========================================
+              ESTADÍSTICAS MyMusic
+    ========================================
+    • Total de canciones en el sistema: #{total_canciones}
+    • Total de playlists creadas: #{total_playlists}
+    • Canciones favoritas: #{total_favoritas}
+    • Canción más larga: "#{cancion_mas_larga.titulo}" de #{cancion_mas_larga.artista} (#{cancion_mas_larga.duracion} seg)
+    • Tiempo total de música guardada: #{tiempo_total_seg} segundos
+    ========================================
+    """
+
+    Util.mostrar_mensaje(mensaje)
+  end
+
 
 
 
