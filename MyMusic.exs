@@ -88,6 +88,8 @@ defmodule MyMusic do
     end
   end
 
+  # El CRUD de canciones
+
   def menu_canciones(canciones) do
 
     Util.mostrar_mensaje("""
@@ -135,6 +137,202 @@ defmodule MyMusic do
         menu_canciones(canciones)
       end
     end
+
+    # Create - Crear Canción
+
+    def crear_cancion(canciones) do
+
+    Util.mostrar_mensaje("\n===== CREAR CANCIÓN =====")
+
+    titulo = Util.ingresar("Título: ", :texto)
+    artista = Util.ingresar("Artista: ", :texto)
+    genero = Util.ingresar("Género: ", :texto)
+    duracion = Util.ingresar("Duración en segundos: ", :entero)
+
+    respuesta = Util.ingresar("¿Es favorita? (s/n): ", :texto)
+
+    favorita = String.downcase(respuesta) == "s"
+
+    id = siguiente_id(canciones)
+
+    nueva_cancion = %{
+      id: id,
+      titulo: titulo,
+      artista: artista,
+      genero: genero,
+      duracion: duracion,
+      favorita: favorita
+    }
+
+    nuevas_canciones = canciones ++ [nueva_cancion]
+
+    Util.mostrar_mensaje("Canción creada correctamente.")
+
+    nuevas_canciones
+  end
+
+  # Read - Ver Canciones
+
+  def mostrar_canciones(canciones) do
+
+    Util.mostrar_mensaje("\n===== LISTA DE CANCIONES =====")
+
+    if canciones == [] do
+      Util.mostrar_mensaje("No hay canciones registradas.")
+    else
+      Enum.each(canciones, fn cancion ->
+        mostrar_cancion(cancion)
+      end)
+    end
+  end
+
+
+  def mostrar_cancion(cancion) do
+
+    minutos = div(cancion.duracion, 60)
+    segundos = rem(cancion.duracion, 60)
+
+    favorita =
+      if cancion.favorita do
+        "<3"
+      else
+        ""
+      end
+
+    Util.mostrar_mensaje(
+      "#{cancion.id}. #{cancion.titulo} - #{cancion.artista} | " <>
+      "#{cancion.genero} | " <>
+      "#{minutos}:#{String.pad_leading(to_string(segundos), 2, "0")} #{favorita}"
+    )
+  end
+
+  # Update - Actualizar Canción
+
+  def actualizar_cancion(canciones) do
+
+    Util.mostrar_mensaje("\n===== ACTUALIZAR CANCIÓN =====")
+
+    id = Util.ingresar("Ingrese el ID de la canción: ", :entero)
+
+    cancion = Enum.find(canciones, fn cancion ->
+      cancion.id == id
+    end)
+
+    if cancion == nil do
+
+      Util.mostrar_mensaje("No existe una canción con ese ID.")
+
+      canciones
+
+    else
+
+      mostrar_cancion(cancion)
+
+      Util.mostrar_mensaje("""
+
+      ¿Qué desea modificar?
+
+      1. Título
+      2. Artista
+      3. Género
+      4. Duración
+      5. Favorita
+      """)
+
+      opcion = Util.ingresar("Seleccione: ", :entero)
+
+      nuevas_canciones =
+        Enum.map(canciones, fn cancion_actual ->
+
+          if cancion_actual.id == id do
+
+            case opcion do
+
+              1 ->
+                nuevo_titulo =
+                  Util.ingresar("Nuevo título: ", :texto)
+
+                %{cancion_actual | titulo: nuevo_titulo}
+
+              2 ->
+                nuevo_artista =
+                  Util.ingresar("Nuevo artista: ", :texto)
+
+                %{cancion_actual | artista: nuevo_artista}
+
+              3 ->
+                nuevo_genero =
+                  Util.ingresar("Nuevo género: ", :texto)
+
+                %{cancion_actual | genero: nuevo_genero}
+
+              4 ->
+                nueva_duracion =
+                  Util.ingresar(
+                    "Nueva duración en segundos: ",
+                    :entero
+                  )
+
+                %{cancion_actual | duracion: nueva_duracion}
+
+              5 ->
+                respuesta =
+                  Util.ingresar(
+                    "¿Es favorita? (s/n): ",
+                    :texto
+                  )
+
+                %{cancion_actual |
+                  favorita: String.downcase(respuesta) == "s"
+                }
+
+              _ ->
+                cancion_actual
+            end
+
+          else
+            cancion_actual
+          end
+        end)
+
+      Util.mostrar_mensaje("Canción actualizada.")
+
+      nuevas_canciones
+    end
+  end
+
+  # Delete - Eliminar Canción
+
+  def eliminar_cancion(canciones) do
+
+    Util.mostrar_mensaje("\n===== ELIMINAR CANCIÓN =====")
+
+    id = Util.ingresar("Ingrese el ID de la canción: ", :entero)
+
+    cancion = Enum.find(canciones, fn cancion ->
+      cancion.id == id
+    end)
+
+    if cancion == nil do
+
+      Util.mostrar_mensaje("La canción no existe.")
+
+      canciones
+
+    else
+
+      nuevas_canciones =
+        Enum.filter(canciones, fn cancion_actual ->
+          cancion_actual.id != id
+        end)
+
+      Util.mostrar_mensaje(
+        "🗑️ Canción \"#{cancion.titulo}\" eliminada."
+      )
+
+      nuevas_canciones
+    end
+  end
 
 
 
