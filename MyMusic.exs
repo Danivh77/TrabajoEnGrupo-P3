@@ -67,19 +67,19 @@ defmodule MyMusic do
     case opcion do
       1 ->
         nuevas_canciones = menu_canciones(canciones)
-        # Si se eliminó una canción, la quitamos también de las playlists
-        menu(nuevas_canciones, limpiar_playlists(playlists, nuevas_canciones))
+        playlists_limpias = limpiar_playlists(playlists, nuevas_canciones)
+        menu(nuevas_canciones, playlists_limpias)
       2 ->
         nuevas_playlists = menu_playlists(playlists, canciones)
         menu(canciones, nuevas_playlists)
       3 ->
-        {nuevas_playlists, msg} = agregar_a_playlist(canciones, playlists)
+        {nuevas_canciones, nuevas_playlists, msg} = agregar_a_playlist(canciones, playlists)
         Util.mostrar_mensaje(msg)
-        menu(canciones, nuevas_playlists)
+        menu(nuevas_canciones, nuevas_playlists)
       4 ->
-        {nuevas_playlists, msg} = quitar_de_playlist(playlists, canciones)
+        {nuevas_canciones, nuevas_playlists, msg} = quitar_de_playlist(playlists, canciones)
         Util.mostrar_mensaje(msg)
-        menu(canciones, nuevas_playlists)
+        menu(nuevas_canciones, nuevas_playlists)
       5 ->
         ver_estadisticas(canciones, playlists)
         menu(canciones, playlists)
@@ -653,12 +653,12 @@ defmodule MyMusic do
   defp agregar_a_playlist(canciones, playlists) do
   case seleccionar_cancion(canciones, "Seleccione el número de la canción que desea agregar: ") do
     {:error, msg} ->
-      {playlists, msg}
+      {canciones, playlists, msg}
 
     {:ok, cancion_elegida} ->
       case seleccionar_playlist(playlists, "Seleccione el número de la playlist a la que se agregará: ") do
         {:error, msg} ->
-          {playlists, msg}
+          {canciones, playlists, msg}
 
         {:ok, playlist_elegida} ->
           id_cancion = cancion_elegida.id
@@ -675,30 +675,51 @@ defmodule MyMusic do
             end
           end)
 
-          {nuevas_playlists, "Canción \"#{cancion_elegida.titulo}\" agregada con éxito a \"#{playlist_elegida.nombre}\"."}
+          es_playlist_favoritas = String.downcase(playlist_elegida.nombre) == "favoritas"
+
+          nuevas_canciones =
+            if es_playlist_favoritas do
+              Enum.map(canciones, fn cancion ->
+                if cancion.id == id_cancion do
+                  %{cancion | favorita: true}
+                else
+                  cancion
+                end
+              end)
+            else
+              canciones
+            end
+
+          msg = if es_playlist_favoritas do
+            "Canción \"#{cancion_elegida.titulo}\" agregada a \"#{playlist_elegida.nombre}\". Además, se marcó como favorita."
+          else
+            "Canción \"#{cancion_elegida.titulo}\" agregada con éxito a \"#{playlist_elegida.nombre}\"."
+          end
+
+          {nuevas_canciones, nuevas_playlists, msg}
       end
     end
   end
 
+
   #funcion para quitar canciones de una playlist
 
   defp quitar_de_playlist(playlists, canciones) do
-
   case seleccionar_playlist(playlists, "Seleccione el número de la playlist de la que desea quitar una canción: ") do
     {:error, msg} ->
-      {playlists, msg}
+      {canciones, playlists, msg}
 
     {:ok, playlist_elegida} ->
-
       canciones_de_playlist = Enum.filter(canciones, fn cancion -> cancion.id in playlist_elegida.canciones end)
 
       case seleccionar_cancion(canciones_de_playlist, "Seleccione el número de la canción a remover: ") do
         {:error, msg} ->
-          {playlists, msg}
+          {canciones, playlists, msg}
 
         {:ok, cancion_a_quitar} ->
           id_cancion = cancion_a_quitar.id
 
+        
           nuevas_playlists = Enum.map(playlists, fn playlist ->
             if playlist.id == playlist_elegida.id do
               %{playlist | canciones: Enum.reject(playlist.canciones, fn id -> id == id_cancion end)}
@@ -707,7 +728,22 @@ defmodule MyMusic do
             end
           end)
 
-          {nuevas_playlists, "Canción \"#{cancion_a_quitar.titulo}\" removida de \"#{playlist_elegida.nombre}\"."}
+          es_playlist_favoritas = String.downcase(playlist_elegida.nombre) == "favoritas"
+
+          nuevas_canciones =
+            if es_playlist_favoritas do
+              Enum.map(canciones, fn cancion ->
+                if cancion.id == id_cancion do
+                  %{cancion | favorita: false}
+                else
+                  cancion
+                end
+              end)
+            else
+              canciones
+            end
+
+          {nuevas_canciones, nuevas_playlists, "Canción \"#{cancion_a_quitar.titulo}\" removida de \"#{playlist_elegida.nombre}\"."}
       end
     end
   end
